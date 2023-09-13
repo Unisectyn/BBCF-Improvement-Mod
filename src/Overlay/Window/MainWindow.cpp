@@ -1,426 +1,492 @@
 #include "MainWindow.h"
 
-#include "framedata.h"
 #include "HitboxOverlay.h"
 #include "PaletteEditorWindow.h"
+#include "framedata.h"
 
 #include "Core/Settings.h"
 #include "Core/info.h"
 #include "Core/interfaces.h"
 #include "Game/gamestates.h"
-#include "Overlay/imgui_utils.h"
 #include "Overlay/Widget/ActiveGameModeWidget.h"
 #include "Overlay/Widget/GameModeSelectWidget.h"
 #include "Overlay/Widget/StageSelectWidget.h"
+#include "Overlay/imgui_utils.h"
 
 #include <sstream>
 
-MainWindow::MainWindow(const std::string& windowTitle, bool windowClosable, WindowContainer& windowContainer, ImGuiWindowFlags windowFlags)
-	: IWindow(windowTitle, windowClosable, windowFlags), m_pWindowContainer(&windowContainer)
-{
-	m_windowTitle = MOD_WINDOW_TITLE;
-	m_windowTitle += " ";
-	m_windowTitle += MOD_VERSION_NUM;
+MainWindow::MainWindow(const std::string &windowTitle, bool windowClosable,
+                       WindowContainer &windowContainer,
+                       ImGuiWindowFlags windowFlags)
+    : IWindow(windowTitle, windowClosable, windowFlags),
+      m_pWindowContainer(&windowContainer) {
+  m_windowTitle = MOD_WINDOW_TITLE;
+  m_windowTitle += " ";
+  m_windowTitle += MOD_VERSION_NUM;
 
 #ifdef _DEBUG
-	m_windowTitle += " (DEBUG)";
+  m_windowTitle += " (DEBUG)";
 #endif
 
-	m_windowTitle += "###MainTitle"; // Set unique identifier
+  m_windowTitle += "###MainTitle"; // Set unique identifier
 }
 
-void MainWindow::BeforeDraw()
-{
-	ImGui::SetWindowPos(m_windowTitle.c_str(), ImVec2(12, 20), ImGuiCond_FirstUseEver);
+void MainWindow::BeforeDraw() {
+  ImGui::SetWindowPos(m_windowTitle.c_str(), ImVec2(12, 20),
+                      ImGuiCond_FirstUseEver);
 
-	ImVec2 windowSizeConstraints;
-	switch (Settings::settingsIni.menusize)
-	{
-		case 1:
-			windowSizeConstraints = ImVec2(250, 190);
-			break;
-		case 3:
-windowSizeConstraints = ImVec2(400, 230);
-break;
-		default:
-			windowSizeConstraints = ImVec2(330, 230);
-	}
+  ImVec2 windowSizeConstraints;
+  switch (Settings::settingsIni.menusize) {
+  case 1:
+    windowSizeConstraints = ImVec2(250, 190);
+    break;
+  case 3:
+    windowSizeConstraints = ImVec2(400, 230);
+    break;
+  default:
+    windowSizeConstraints = ImVec2(330, 230);
+  }
 
-	ImGui::SetNextWindowSizeConstraints(windowSizeConstraints, ImVec2(1000, 1000));
+  ImGui::SetNextWindowSizeConstraints(windowSizeConstraints,
+                                      ImVec2(1000, 1000));
 }
 
-void MainWindow::Draw()
-{
-	ImGui::Text("Toggle me with %s", Settings::settingsIni.togglebutton.c_str());
-	ImGui::Text("Toggle Online with %s", Settings::settingsIni.toggleOnlineButton.c_str());
-	ImGui::Text("Toggle HUD with %s", Settings::settingsIni.toggleHUDbutton.c_str());
-	ImGui::Separator();
+void MainWindow::Draw() {
+  ImGui::Text("Toggle me with %s", Settings::settingsIni.togglebutton.c_str());
+  ImGui::Text("Toggle Online with %s",
+              Settings::settingsIni.toggleOnlineButton.c_str());
+  ImGui::Text("Toggle HUD with %s",
+              Settings::settingsIni.toggleHUDbutton.c_str());
+  ImGui::Separator();
 
-	ImGui::VerticalSpacing(5);
+  ImGui::VerticalSpacing(5);
 
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("P$"); ImGui::SameLine();
-	if (g_gameVals.pGameMoney)
-	{
-		ImGui::InputInt("##P$", *&g_gameVals.pGameMoney);
-	}
+  ImGui::AlignTextToFramePadding();
+  ImGui::TextUnformatted("P$");
+  ImGui::SameLine();
+  if (g_gameVals.pGameMoney) {
+    ImGui::InputInt("##P$", *&g_gameVals.pGameMoney);
+  }
 
-	ImGui::VerticalSpacing(5);
+  ImGui::VerticalSpacing(5);
 
-	if (ImGui::Button("Online", BTN_SIZE))
-	{
-		m_pWindowContainer->GetWindow(WindowType_Room)->ToggleOpen();
-	}
+  if (ImGui::Button("Online", BTN_SIZE)) {
+    m_pWindowContainer->GetWindow(WindowType_Room)->ToggleOpen();
+  }
 
-	ImGui::VerticalSpacing(5);
+  ImGui::VerticalSpacing(5);
 
-	DrawGameplaySettingSection();
-	DrawCustomPalettesSection();
-	DrawHitboxOverlaySection();
-	DrawFrameAdvantageSection();
-	DrawAvatarSection();
-	DrawLoadedSettingsValuesSection();
-	DrawUtilButtons();
+  DrawGameplaySettingSection();
+  DrawCustomPalettesSection();
+  DrawHitboxOverlaySection();
+  DrawFrameAdvantageSection();
+  DrawFrameHistorySection();
+  DrawAvatarSection();
+  DrawLoadedSettingsValuesSection();
+  DrawUtilButtons();
 
-	ImGui::VerticalSpacing(5);
+  ImGui::VerticalSpacing(5);
 
-	DrawCurrentPlayersCount();
-	DrawLinkButtons();
+  DrawCurrentPlayersCount();
+  DrawLinkButtons();
 }
 
-void MainWindow::DrawUtilButtons() const
-{
+void MainWindow::DrawUtilButtons() const {
 #ifdef _DEBUG
-	if (ImGui::Button("DEBUG", BTN_SIZE))
-	{
-		m_pWindowContainer->GetWindow(WindowType_Debug)->ToggleOpen();
-	}
+  if (ImGui::Button("DEBUG", BTN_SIZE)) {
+    m_pWindowContainer->GetWindow(WindowType_Debug)->ToggleOpen();
+  }
 #endif
 
-	if (ImGui::Button("Log", BTN_SIZE))
-	{
-		m_pWindowContainer->GetWindow(WindowType_Log)->ToggleOpen();
-	}
-	if (ImGui::Button("States", BTN_SIZE))
-	{
-		m_pWindowContainer->GetWindow(WindowType_Scr)->ToggleOpen();
-	}
+  if (ImGui::Button("Log", BTN_SIZE)) {
+    m_pWindowContainer->GetWindow(WindowType_Log)->ToggleOpen();
+  }
+  if (ImGui::Button("States", BTN_SIZE)) {
+    m_pWindowContainer->GetWindow(WindowType_Scr)->ToggleOpen();
+  }
 }
 
-void MainWindow::DrawCurrentPlayersCount() const
-{
-	ImGui::Text("Current online players:");
-	ImGui::SameLine();
+void MainWindow::DrawCurrentPlayersCount() const {
+  ImGui::Text("Current online players:");
+  ImGui::SameLine();
 
-	std::string currentPlayersCount = g_interfaces.pSteamApiHelper ? g_interfaces.pSteamApiHelper->GetCurrentPlayersCountString() : "<No data>";
-	ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%s", currentPlayersCount.c_str());
+  std::string currentPlayersCount =
+      g_interfaces.pSteamApiHelper
+          ? g_interfaces.pSteamApiHelper->GetCurrentPlayersCountString()
+          : "<No data>";
+  ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%s",
+                     currentPlayersCount.c_str());
 }
 
-void MainWindow::DrawAvatarSection() const
-{
-	if (!ImGui::CollapsingHeader("Avatar settings"))
-		return;
+void MainWindow::DrawAvatarSection() const {
+  if (!ImGui::CollapsingHeader("Avatar settings"))
+    return;
 
-	if (g_gameVals.playerAvatarAddr == NULL && g_gameVals.playerAvatarColAddr == NULL && g_gameVals.playerAvatarAcc1 == NULL && g_gameVals.playerAvatarAcc2 == NULL)
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("CONNECT TO NETWORK MODE FIRST");
-	}
-	else
-	{
-		ImGui::HorizontalSpacing(); ImGui::SliderInt("Avatar", g_gameVals.playerAvatarAddr, 0, 0x2F);
-		ImGui::HorizontalSpacing(); ImGui::SliderInt("Color", g_gameVals.playerAvatarColAddr, 0, 0x3);
-		ImGui::HorizontalSpacing(); ImGui::SliderByte("Accessory 1", g_gameVals.playerAvatarAcc1, 0, 0xCF);
-		ImGui::HorizontalSpacing(); ImGui::SliderByte("Accessory 2", g_gameVals.playerAvatarAcc2, 0, 0xCF);
-	}
+  if (g_gameVals.playerAvatarAddr == NULL &&
+      g_gameVals.playerAvatarColAddr == NULL &&
+      g_gameVals.playerAvatarAcc1 == NULL &&
+      g_gameVals.playerAvatarAcc2 == NULL) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("CONNECT TO NETWORK MODE FIRST");
+  } else {
+    ImGui::HorizontalSpacing();
+    ImGui::SliderInt("Avatar", g_gameVals.playerAvatarAddr, 0, 0x2F);
+    ImGui::HorizontalSpacing();
+    ImGui::SliderInt("Color", g_gameVals.playerAvatarColAddr, 0, 0x3);
+    ImGui::HorizontalSpacing();
+    ImGui::SliderByte("Accessory 1", g_gameVals.playerAvatarAcc1, 0, 0xCF);
+    ImGui::HorizontalSpacing();
+    ImGui::SliderByte("Accessory 2", g_gameVals.playerAvatarAcc2, 0, 0xCF);
+  }
 }
 
-void MainWindow::DrawFrameAdvantageSection() const
-{
-	if (!ImGui::CollapsingHeader("Framedata"))
-		return;
+void ::MainWindow::DrawFrameHistorySection() const {
+  if (!ImGui::CollapsingHeader("FrameHistory"))
+    return;
 
-	if (!isInMatch())
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
-		return;
-	}
-	else if (!(*g_gameVals.pGameMode == GameMode_Training || *g_gameVals.pGameMode == GameMode_ReplayTheater))
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN TRAINING MODE OR REPLAY THEATER!");
-		return;
-	}
+  if (!isInMatch()) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
+    return;
+  } else if (!(*g_gameVals.pGameMode == GameMode_Training ||
+               *g_gameVals.pGameMode == GameMode_ReplayTheater)) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN TRAINING MODE OR REPLAY THEATER!");
+    return;
+  }
 
-	if (!g_gameVals.pEntityList)
-		return;
+  // Create the frame history to be updated later
+  static FrameHistory history = FrameHistory();
 
-	computeFramedataInteractions();
+  // May want to come up with our own function to check if time moved.
+  // The current implementation doesn't check if we missed frames.
+  if (!g_interfaces.player1.IsCharDataNullPtr() &&
+      !g_interfaces.player2.IsCharDataNullPtr() && hasWorldTimeMoved()) {
 
-	static bool isFrameAdvantageOpen = false;
-	ImGui::HorizontalSpacing();
-	ImGui::Checkbox("Enable##framedata_section", &isFrameAdvantageOpen);
+    history.updateHistory(*g_interfaces.player1.GetData(),
+                          *g_interfaces.player2.GetData());
+  }
 
-	if (isFrameAdvantageOpen)
-	{
-		ImVec4 color;
-		ImVec4 white(1.0f, 1.0f, 1.0f, 1.0f);
-		ImVec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-		ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+  static bool isFrameHistoryOpen = false;
+  ImGui::HorizontalSpacing();
+  ImGui::Checkbox("Enable##framehistory_section", &isFrameHistoryOpen);
 
-		/* Window */
-		ImGui::Begin("Framedata", &isFrameAdvantageOpen);
-		ImGui::SetWindowSize(ImVec2(220, 100), ImGuiCond_FirstUseEver);
-		ImGui::SetWindowPos(ImVec2(350, 250), ImGuiCond_FirstUseEver);
+  if (isFrameHistoryOpen) {
 
-		ImGui::Columns(2, "columns_layout", true);
+    ImGui::Begin("Frame history", &isFrameHistoryOpen);
 
-		// First column
-		if (interaction.frameAdvantageToDisplay > 0)
-			color = green;
-		else if (interaction.frameAdvantageToDisplay < 0)
-			color = red;
-		else
-			color = white;
+    // borrow the history queue
+    StatePairQueue &queue = history.read();
 
-		ImGui::Text("Player 1");
-		ImGui::TextUnformatted("Gap:");
-		ImGui::SameLine();
-		ImGui::TextUnformatted(((interaction.p1GapDisplay != -1) ? std::to_string(interaction.p1GapDisplay) : "").c_str());
+    // player 1 history. The first element of each array in the queue
+    ImGui::Text("Player 1:");
+    for (auto &elem : queue) {
+      ImGui::SameLine();
+      float t = (1 - elem.front()) * 1.0f;
+      MakeBox(ImColor::HSV(t, t, t), elem.front() ? "I\0" : "N\0");
+    }
 
-		ImGui::TextUnformatted("Advantage:");
-		ImGui::SameLine();
-		std::string str = std::to_string(interaction.frameAdvantageToDisplay);
-		if (interaction.frameAdvantageToDisplay > 0)
-			str = "+" + str;
+    // the second element for player 2
+    ImGui::Text("Player 2:");
+    for (auto &elem : queue) {
+      ImGui::SameLine();
+      float t = (1 - elem.back()) * 1.0f;
+      MakeBox(ImColor::HSV(t, t, t), elem.back() ? "I\0" : "N\0");
+    }
 
-		ImGui::TextColored(color, "%s", str.c_str());
-
-		// Next column
-		if (interaction.frameAdvantageToDisplay > 0)
-			color = red;
-		else if (interaction.frameAdvantageToDisplay < 0)
-			color = green;
-		else
-			color = white;
-
-		ImGui::NextColumn();
-		ImGui::Text("Player 2");
-		ImGui::TextUnformatted("Gap:");
-		ImGui::SameLine();
-		ImGui::TextUnformatted(((interaction.p2GapDisplay != -1) ? std::to_string(interaction.p2GapDisplay) : "").c_str());
-
-		ImGui::TextUnformatted("Advantage:");
-		ImGui::SameLine();
-		std::string str2 = std::to_string(-interaction.frameAdvantageToDisplay);
-		if (interaction.frameAdvantageToDisplay < 0)
-			str2 = "+" + str2;
-		ImGui::TextColored(color, "%s", str2.c_str());
-		ImGui::End();
-	}
+    ImGui::End();
+  }
 }
 
-void MainWindow::DrawCustomPalettesSection() const
-{
-	if (!ImGui::CollapsingHeader("Custom palettes"))
-		return;
+void MainWindow::DrawFrameAdvantageSection() const {
+  if (!ImGui::CollapsingHeader("Framedata"))
+    return;
 
-	if (!isInMatch())
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
-	}
-	else
-	{
-		ImGui::HorizontalSpacing();
-		m_pWindowContainer->GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowAllPaletteSelections("Main");
-	}
+  if (!isInMatch()) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
+    return;
+  } else if (!(*g_gameVals.pGameMode == GameMode_Training ||
+               *g_gameVals.pGameMode == GameMode_ReplayTheater)) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN TRAINING MODE OR REPLAY THEATER!");
+    return;
+  }
 
-	ImGui::VerticalSpacing(15);
-	ImGui::HorizontalSpacing();
-	m_pWindowContainer->GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowReloadAllPalettesButton();
+  if (!g_gameVals.pEntityList)
+    return;
 
-	if (isPaletteEditingEnabledInCurrentState())
-	{
-		ImGui::HorizontalSpacing();
+  computeFramedataInteractions();
 
-		if (ImGui::Button("Palette editor"))
-			m_pWindowContainer->GetWindow(WindowType_PaletteEditor)->ToggleOpen();
-	}
+  static bool isFrameAdvantageOpen = false;
+  ImGui::HorizontalSpacing();
+  ImGui::Checkbox("Enable##framedata_section", &isFrameAdvantageOpen);
+
+  if (isFrameAdvantageOpen) {
+    ImVec4 color;
+    ImVec4 white(1.0f, 1.0f, 1.0f, 1.0f);
+    ImVec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+
+    /* Window */
+    ImGui::Begin("Framedata", &isFrameAdvantageOpen);
+    ImGui::SetWindowSize(ImVec2(220, 100), ImGuiCond_FirstUseEver);
+    ImGui::SetWindowPos(ImVec2(350, 250), ImGuiCond_FirstUseEver);
+
+    ImGui::Columns(2, "columns_layout", true);
+
+    // First column
+    if (interaction.frameAdvantageToDisplay > 0)
+      color = green;
+    else if (interaction.frameAdvantageToDisplay < 0)
+      color = red;
+    else
+      color = white;
+
+    ImGui::Text("Player 1");
+    ImGui::TextUnformatted("Gap:");
+    ImGui::SameLine();
+    ImGui::TextUnformatted(((interaction.p1GapDisplay != -1)
+                                ? std::to_string(interaction.p1GapDisplay)
+                                : "")
+                               .c_str());
+
+    ImGui::TextUnformatted("Advantage:");
+    ImGui::SameLine();
+    std::string str = std::to_string(interaction.frameAdvantageToDisplay);
+    if (interaction.frameAdvantageToDisplay > 0)
+      str = "+" + str;
+
+    ImGui::TextColored(color, "%s", str.c_str());
+
+    // Next column
+    if (interaction.frameAdvantageToDisplay > 0)
+      color = red;
+    else if (interaction.frameAdvantageToDisplay < 0)
+      color = green;
+    else
+      color = white;
+
+    ImGui::NextColumn();
+    ImGui::Text("Player 2");
+    ImGui::TextUnformatted("Gap:");
+    ImGui::SameLine();
+    ImGui::TextUnformatted(((interaction.p2GapDisplay != -1)
+                                ? std::to_string(interaction.p2GapDisplay)
+                                : "")
+                               .c_str());
+
+    ImGui::TextUnformatted("Advantage:");
+    ImGui::SameLine();
+    std::string str2 = std::to_string(-interaction.frameAdvantageToDisplay);
+    if (interaction.frameAdvantageToDisplay < 0)
+      str2 = "+" + str2;
+    ImGui::TextColored(color, "%s", str2.c_str());
+    ImGui::End();
+  }
 }
 
-void MainWindow::DrawHitboxOverlaySection() const
-{
-	if (!ImGui::CollapsingHeader("Hitbox overlay"))
-		return;
+void MainWindow::DrawCustomPalettesSection() const {
+  if (!ImGui::CollapsingHeader("Custom palettes"))
+    return;
 
-	if (!isHitboxOverlayEnabledInCurrentState())
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN TRAINING, VERSUS, OR REPLAY!");
-		return;
-	}
+  if (!isInMatch()) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
+  } else {
+    ImGui::HorizontalSpacing();
+    m_pWindowContainer->GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)
+        ->ShowAllPaletteSelections("Main");
+  }
 
-	static bool isOpen = false;
+  ImGui::VerticalSpacing(15);
+  ImGui::HorizontalSpacing();
+  m_pWindowContainer->GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)
+      ->ShowReloadAllPalettesButton();
 
-	ImGui::HorizontalSpacing();
-	if (ImGui::Checkbox("Enable##hitbox_overlay_section", &isOpen))
-	{
-		if (isOpen)
-		{
-			m_pWindowContainer->GetWindow(WindowType_HitboxOverlay)->Open();
-		}
-		else
-		{
-			g_gameVals.isFrameFrozen = false;
-			m_pWindowContainer->GetWindow(WindowType_HitboxOverlay)->Close();
-		}
-	}
+  if (isPaletteEditingEnabledInCurrentState()) {
+    ImGui::HorizontalSpacing();
 
-	if (isOpen)
-	{
-		ImGui::VerticalSpacing(10);
-
-		if (!g_interfaces.player1.IsCharDataNullPtr() && !g_interfaces.player2.IsCharDataNullPtr())
-		{
-			ImGui::HorizontalSpacing();
-			ImGui::Checkbox("Player1", &m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)->drawCharacterHitbox[0]);
-			ImGui::HoverTooltip(getCharacterNameByIndexA(g_interfaces.player1.GetData()->charIndex).c_str());
-			ImGui::SameLine(); ImGui::HorizontalSpacing();
-			ImGui::TextUnformatted(g_interfaces.player1.GetData()->currentAction);
-
-			ImGui::HorizontalSpacing();
-			ImGui::Checkbox("Player2", &m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)->drawCharacterHitbox[1]);
-			ImGui::HoverTooltip(getCharacterNameByIndexA(g_interfaces.player2.GetData()->charIndex).c_str());
-			ImGui::SameLine(); ImGui::HorizontalSpacing();
-			ImGui::TextUnformatted(g_interfaces.player2.GetData()->currentAction);
-		}
-
-		ImGui::VerticalSpacing(10);
-
-		ImGui::HorizontalSpacing();
-		m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)->DrawRectThicknessSlider();
-
-		ImGui::HorizontalSpacing();
-		m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)->DrawRectFillTransparencySlider();
-
-		ImGui::HorizontalSpacing();
-		ImGui::Checkbox("Draw origin",
-			&m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)->drawOriginLine);
-
-		ImGui::VerticalSpacing();
-
-		ImGui::HorizontalSpacing();
-		ImGui::Checkbox("Freeze frame:", &g_gameVals.isFrameFrozen);
-		if (g_gameVals.pFrameCount)
-		{
-			ImGui::SameLine();
-			ImGui::Text("%d", *g_gameVals.pFrameCount);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset"))
-			{
-				*g_gameVals.pFrameCount = 0;
-				g_gameVals.framesToReach = 0;
-			}
-		}
-
-		if (g_gameVals.isFrameFrozen)
-		{
-			static int framesToStep = 1;
-			ImGui::HorizontalSpacing();
-			if (ImGui::Button("Step frames"))
-			{
-				g_gameVals.framesToReach = *g_gameVals.pFrameCount + framesToStep;
-			}
-
-			ImGui::SameLine();
-			ImGui::SliderInt("", &framesToStep, 1, 60);
-		}
-	}
+    if (ImGui::Button("Palette editor"))
+      m_pWindowContainer->GetWindow(WindowType_PaletteEditor)->ToggleOpen();
+  }
 }
 
-void MainWindow::DrawGameplaySettingSection() const
-{
-	if (!ImGui::CollapsingHeader("Gameplay settings"))
-		return;
+void MainWindow::DrawHitboxOverlaySection() const {
+  if (!ImGui::CollapsingHeader("Hitbox overlay"))
+    return;
 
-	if (!isInMatch() && !isOnVersusScreen() && !isOnReplayMenuScreen() && !isOnCharacterSelectionScreen())
-	{
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
+  if (!isHitboxOverlayEnabledInCurrentState()) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN TRAINING, VERSUS, OR REPLAY!");
+    return;
+  }
 
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN REPLAY MENU!");
+  static bool isOpen = false;
 
-		ImGui::HorizontalSpacing();
-		ImGui::TextDisabled("YOU ARE NOT IN CHARACTER SELECTION!");
+  ImGui::HorizontalSpacing();
+  if (ImGui::Checkbox("Enable##hitbox_overlay_section", &isOpen)) {
+    if (isOpen) {
+      m_pWindowContainer->GetWindow(WindowType_HitboxOverlay)->Open();
+    } else {
+      g_gameVals.isFrameFrozen = false;
+      m_pWindowContainer->GetWindow(WindowType_HitboxOverlay)->Close();
+    }
+  }
 
-		return;
-	}
+  if (isOpen) {
+    ImGui::VerticalSpacing(10);
 
-	if (isStageSelectorEnabledInCurrentState())
-	{
-		ImGui::HorizontalSpacing();
-		StageSelectWidget();
-		ImGui::VerticalSpacing(10);
-	}
+    if (!g_interfaces.player1.IsCharDataNullPtr() &&
+        !g_interfaces.player2.IsCharDataNullPtr()) {
+      ImGui::HorizontalSpacing();
+      ImGui::Checkbox("Player1",
+                      &m_pWindowContainer
+                           ->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)
+                           ->drawCharacterHitbox[0]);
+      ImGui::HoverTooltip(
+          getCharacterNameByIndexA(g_interfaces.player1.GetData()->charIndex)
+              .c_str());
+      ImGui::SameLine();
+      ImGui::HorizontalSpacing();
+      ImGui::TextUnformatted(g_interfaces.player1.GetData()->currentAction);
 
-	ImGui::HorizontalSpacing();
-	ActiveGameModeWidget();
+      ImGui::HorizontalSpacing();
+      ImGui::Checkbox("Player2",
+                      &m_pWindowContainer
+                           ->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)
+                           ->drawCharacterHitbox[1]);
+      ImGui::HoverTooltip(
+          getCharacterNameByIndexA(g_interfaces.player2.GetData()->charIndex)
+              .c_str());
+      ImGui::SameLine();
+      ImGui::HorizontalSpacing();
+      ImGui::TextUnformatted(g_interfaces.player2.GetData()->currentAction);
+    }
 
-	if (isGameModeSelectorEnabledInCurrentState())
-	{
-		bool isThisPlayerSpectator = g_interfaces.pRoomManager->IsRoomFunctional() && g_interfaces.pRoomManager->IsThisPlayerSpectator();
+    ImGui::VerticalSpacing(10);
 
-		if (!isThisPlayerSpectator)
-		{
-			ImGui::HorizontalSpacing();
-			GameModeSelectWidget();
-		}
-	}
+    ImGui::HorizontalSpacing();
+    m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)
+        ->DrawRectThicknessSlider();
 
-	if (isInMatch())
-	{
-		ImGui::VerticalSpacing(10);
-		ImGui::HorizontalSpacing();
-		ImGui::Checkbox("Hide HUD", (bool*)g_gameVals.pIsHUDHidden);
-	}
+    ImGui::HorizontalSpacing();
+    m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)
+        ->DrawRectFillTransparencySlider();
+
+    ImGui::HorizontalSpacing();
+    ImGui::Checkbox(
+        "Draw origin",
+        &m_pWindowContainer->GetWindow<HitboxOverlay>(WindowType_HitboxOverlay)
+             ->drawOriginLine);
+
+    ImGui::VerticalSpacing();
+
+    ImGui::HorizontalSpacing();
+    ImGui::Checkbox("Freeze frame:", &g_gameVals.isFrameFrozen);
+    if (g_gameVals.pFrameCount) {
+      ImGui::SameLine();
+      ImGui::Text("%d", *g_gameVals.pFrameCount);
+      ImGui::SameLine();
+      if (ImGui::Button("Reset")) {
+        *g_gameVals.pFrameCount = 0;
+        g_gameVals.framesToReach = 0;
+      }
+    }
+
+    if (g_gameVals.isFrameFrozen) {
+      static int framesToStep = 1;
+      ImGui::HorizontalSpacing();
+      if (ImGui::Button("Step frames")) {
+        g_gameVals.framesToReach = *g_gameVals.pFrameCount + framesToStep;
+      }
+
+      ImGui::SameLine();
+      ImGui::SliderInt("", &framesToStep, 1, 60);
+    }
+  }
 }
 
-void MainWindow::DrawLinkButtons() const
-{
-	ImGui::ButtonUrl("Discord", MOD_LINK_DISCORD, BTN_SIZE);
+void MainWindow::DrawGameplaySettingSection() const {
+  if (!ImGui::CollapsingHeader("Gameplay settings"))
+    return;
 
-	ImGui::SameLine();
-	ImGui::ButtonUrl("Forum", MOD_LINK_FORUM, BTN_SIZE);
+  if (!isInMatch() && !isOnVersusScreen() && !isOnReplayMenuScreen() &&
+      !isOnCharacterSelectionScreen()) {
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
 
-	ImGui::SameLine();
-	ImGui::ButtonUrl("GitHub", MOD_LINK_GITHUB, BTN_SIZE);
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN REPLAY MENU!");
+
+    ImGui::HorizontalSpacing();
+    ImGui::TextDisabled("YOU ARE NOT IN CHARACTER SELECTION!");
+
+    return;
+  }
+
+  if (isStageSelectorEnabledInCurrentState()) {
+    ImGui::HorizontalSpacing();
+    StageSelectWidget();
+    ImGui::VerticalSpacing(10);
+  }
+
+  ImGui::HorizontalSpacing();
+  ActiveGameModeWidget();
+
+  if (isGameModeSelectorEnabledInCurrentState()) {
+    bool isThisPlayerSpectator =
+        g_interfaces.pRoomManager->IsRoomFunctional() &&
+        g_interfaces.pRoomManager->IsThisPlayerSpectator();
+
+    if (!isThisPlayerSpectator) {
+      ImGui::HorizontalSpacing();
+      GameModeSelectWidget();
+    }
+  }
+
+  if (isInMatch()) {
+    ImGui::VerticalSpacing(10);
+    ImGui::HorizontalSpacing();
+    ImGui::Checkbox("Hide HUD", (bool *)g_gameVals.pIsHUDHidden);
+  }
 }
 
-void MainWindow::DrawLoadedSettingsValuesSection() const
-{
-	if (!ImGui::CollapsingHeader("Loaded settings.ini values"))
-		return;
+void MainWindow::DrawLinkButtons() const {
+  ImGui::ButtonUrl("Discord", MOD_LINK_DISCORD, BTN_SIZE);
 
-	// Not using ImGui columns here because they are bugged if the window has always_autoresize flag. The window 
-	// starts extending to infinity, if the left edge of the window touches any edges of the screen
+  ImGui::SameLine();
+  ImGui::ButtonUrl("Forum", MOD_LINK_FORUM, BTN_SIZE);
 
-	std::ostringstream oss;
+  ImGui::SameLine();
+  ImGui::ButtonUrl("GitHub", MOD_LINK_GITHUB, BTN_SIZE);
+}
 
-	ImGui::BeginChild("loaded_settings", ImVec2(0, 300.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
+void MainWindow::DrawLoadedSettingsValuesSection() const {
+  if (!ImGui::CollapsingHeader("Loaded settings.ini values"))
+    return;
 
-	//X-Macro
-#define SETTING(_type, _var, _inistring, _defaultval) \
-	oss << " " << _inistring; \
-	ImGui::TextUnformatted(oss.str().c_str()); ImGui::SameLine(ImGui::GetWindowWidth() * 0.6f); \
-	oss.str(""); \
-	oss << "= " << Settings::settingsIni.##_var; \
-	ImGui::TextUnformatted(oss.str().c_str()); ImGui::Separator(); \
-	oss.str("");
+  // Not using ImGui columns here because they are bugged if the window has
+  // always_autoresize flag. The window starts extending to infinity, if the
+  // left edge of the window touches any edges of the screen
+
+  std::ostringstream oss;
+
+  ImGui::BeginChild("loaded_settings", ImVec2(0, 300.0f), true,
+                    ImGuiWindowFlags_HorizontalScrollbar);
+
+  // X-Macro
+#define SETTING(_type, _var, _inistring, _defaultval)                          \
+  oss << " " << _inistring;                                                    \
+  ImGui::TextUnformatted(oss.str().c_str());                                   \
+  ImGui::SameLine(ImGui::GetWindowWidth() * 0.6f);                             \
+  oss.str("");                                                                 \
+  oss << "= " << Settings::settingsIni.##_var;                                 \
+  ImGui::TextUnformatted(oss.str().c_str());                                   \
+  ImGui::Separator();                                                          \
+  oss.str("");
 #include "Core/settings.def"
 #undef SETTING
 
-	ImGui::EndChild();
+  ImGui::EndChild();
 }
