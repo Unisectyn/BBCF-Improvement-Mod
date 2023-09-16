@@ -7,22 +7,24 @@
 #include "Game/ReplayStates/FrameState.h"
 #include "Game/ReplayFiles/ReplayFile.h"
 #include "Game/ReplayFiles/ReplayFileManager.h"
+#include "Game/Menus/TrainingSetupMenu.h"
 #include "Overlay/NotificationBar/NotificationBar.h"
 #include "Overlay/WindowManager.h"
 #include "Overlay/Window/HitboxOverlay.h"
+#include "Overlay/imgui_utils.h"
 #include "Psapi.h"
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <array>
-#include "Core/utils.h"
 #include "Core/info.h"
 #include <windows.h>
 #include "Game/ReplayFiles/ReplayFileManager.h"
 #include "Game/Playbacks/PlaybackManager.h"
 #include <cstdlib>
 #include <ctime>
+
 
 void ScrWindow::Draw()
 {
@@ -43,7 +45,78 @@ void ScrWindow::Draw()
     DrawVeryExperimentalSection2();
     DrawRoomSection();
 }
+void ScrWindow::DrawWakeupDelayControl() {
+    const char* items[] = { "Disabled", "Neutral", "Forward", "Backward", "Quick", "Random" };
+    static int32_t wakeup_delay_current_item = 0;
+    //gets the start of the fourth page of training setup menu
+    ImGui::BeginChild("wakeup_delay_child##wakeup_delay", ImVec2(160, 30));
+    ImGui::Text("Delay: ");
+    ImGui::SameLine();
+    if (ImGui::InputInt("##wakeup_delay", &(ScrWindow::wakeup_delay))) {
+        
+        if (ScrWindow::wakeup_delay > 39) {
+            ScrWindow::wakeup_delay = 39;
+        }
+        if (ScrWindow::wakeup_delay < 0) {
+            ScrWindow::wakeup_delay = 0;
+        }
+    }
+    ImGui::EndChild();
+    ImGui::SameLine(); ImGui::HorizontalSpacing(30);
+    ImGui::BeginChild("wakeup_type_child##wakeup_delay", ImVec2(190, 30));
+    ImGui::Text("Wake-up: ");
+    ImGui::SameLine();
+    if (ImGui::Combo("##wakeup_delay", &wakeup_delay_current_item, items, IM_ARRAYSIZE(items)))
+    {
+        ScrWindow::wakeup_type= wakeup_delay_current_item;
+    }
+    ImGui::EndChild();
+    ImGui::BeginChild("wakeup_skew_child##wakeup_delay", ImVec2(263, 30));
+    ImGui::Text("Skew range: ");
+    ImGui::SameLine();
+    if (ImGui::InputInt("##wakeup_skew", &(ScrWindow::wakeup_delay_skew))) {
+        ScrWindow::wakeup_delay_skew_change_flag = true;
+        if (ScrWindow::wakeup_delay_skew > 39) {
+            ScrWindow::wakeup_delay_skew = 39;
+        }
+        if (ScrWindow::wakeup_delay_skew < -39) {
+            ScrWindow::wakeup_delay_skew = -39;
+        }
+    };
+    ImGui::EndChild();
 
+}
+void ScrWindow::check_wakeup_delay() {
+    TrainingSetupMenu* menu = (TrainingSetupMenu*)(ScrWindow::bbcf_base_adress + 0x902BDC);
+    menu->emergency_roll = 0;
+    auto current_action = std::string(g_interfaces.player2.GetData()->currentAction);
+    auto action_time = g_interfaces.player2.GetData()->actionTime;
+    /*finds the random "skew" both for positiveand negative "skews".Yes I know this doesnt fit 
+    the true statistical definition of skew but I couldn't think of a better name fuck off*/
+    static int wakeup_delay_random_skew = 0;
+    //this is necessary to make sure people dont get stuck in unreacheable action_times when changing the skew
+    if (ScrWindow::wakeup_delay_skew_change_flag) {
+        wakeup_delay_random_skew = 0;
+        ScrWindow::wakeup_delay_skew_change_flag = false;
+    }
+    
+    if (ScrWindow::wakeup_delay_skew && !wakeup_delay_random_skew) {
+        wakeup_delay_random_skew = (std::rand() % std::abs(ScrWindow::wakeup_delay_skew))
+                                                            * (ScrWindow::wakeup_delay_skew / std::abs(ScrWindow::wakeup_delay_skew));
+    }
+    //searches for CmnActFDownLoop and CmnActBDownLoop, this state after 10f is the one that allows for non emergency tech action
+    auto wakeup_action_trigger_find = current_action.find("DownLoop");
+    if (ScrWindow::wakeup_type
+        && wakeup_action_trigger_find != std::string::npos
+        && action_time == 10 + ScrWindow::wakeup_delay + wakeup_delay_random_skew) {
+        menu->wake_up = wakeup_type;
+        wakeup_delay_random_skew = 0;
+    }
+    else {
+        menu->wake_up = 0;
+    }
+
+}
 void ScrWindow::DrawGenericOptionsSection() {
     static bool check_dummy = g_gameVals.enableForeignPalettes;
     ImGui::TextWrapped("If you're having crash issues when joining ranked from training mode, disable this when searching in training mode, can be reenabled for any other situation. It stops your game from loading foreign palettes. This is just a stopgap, grim will come with the real fix.");
@@ -51,9 +124,14 @@ void ScrWindow::DrawGenericOptionsSection() {
         g_gameVals.enableForeignPalettes = !g_gameVals.enableForeignPalettes;
 
     }
- 
-
-
+    if (*g_gameVals.pGameMode == GameMode_Training && !g_interfaces.player2.IsCharDataNullPtr()) {
+        static bool check_enable_wakeup_delay = false;
+        ImGui::Checkbox("Enable wakeup delay override", &check_enable_wakeup_delay);
+        if (check_enable_wakeup_delay) {
+            DrawWakeupDelayControl();
+            check_wakeup_delay();
+        }
+    }
 }
 void ScrWindow::swap_character_coordinates() {
     CharData* p1 = g_interfaces.player1.GetData();
@@ -1751,8 +1829,8 @@ void ScrWindow::DrawVeryExperimentalSection2() {
 
 
 void ScrWindow::DrawRoomSection() {
-    const char* items[] = { "No Rematch", "No limit", "FT2", "FT3", "FT5", "FT10", " " };
-    static int currentItem = 6;
+    const char* items[] = { "No Rematch", "No limit", "FT2", "FT3", "FT5", "FT10"};
+    static int currentItem = 0;
 
     if (!ImGui::CollapsingHeader("Room Settings"))
         return;
@@ -1761,6 +1839,29 @@ void ScrWindow::DrawRoomSection() {
     {
         ImGui::TextUnformatted("Room is not available!");
         return;
+    }
+    //sets the selected value in the dropdown the actual value
+    switch (g_gameVals.pRoom->rematch) {
+    case RoomRematch::RematchType_Disabled:
+        currentItem = 0;
+        break;
+    case RoomRematch::RematchType_Unlimited:
+        currentItem = 1;
+        break;
+    case RoomRematch::RematchType_Ft2:
+        currentItem = 2;
+        break;
+    case RoomRematch::RematchType_Ft3:
+        currentItem = 3;
+        break;
+    case RoomRematch::RematchType_Ft5:
+        currentItem = 4;
+        break;
+    case RoomRematch::RematchType_Ft10:
+        currentItem = 5;
+        break;
+    default:
+        break;
     }
 
     if (ImGui::Combo("Rematch Settings##dropdown", &currentItem, items, IM_ARRAYSIZE(items)))
@@ -1790,8 +1891,7 @@ void ScrWindow::DrawRoomSection() {
             g_gameVals.pRoom->rematch = RoomRematch::RematchType_Ft10;
             break;
 
-        case 6:
-            break;
+
 
         default:
             break;

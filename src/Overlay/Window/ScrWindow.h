@@ -3,6 +3,7 @@
 #include <vector>
 #include "Game/Scr/ScrStateReader.h"
 #include "Game/Playbacks/PlaybackManager.h"
+#include "Core/utils.h"
 class ScrWindow : public IWindow
 {
 public:
@@ -15,6 +16,7 @@ protected:
 	void Draw() override;
 
 	void swap_character_coordinates();
+	void check_wakeup_delay();
 
 private:
 	void DrawGenericOptionsSection();
@@ -25,6 +27,7 @@ private:
 	void DrawReplayRewind();
 	void DrawVeryExperimentalSection2();
 	void DrawRoomSection();
+	void DrawWakeupDelayControl();
 	PlaybackManager playback_manager;
 	bool m_showDemoWindow = false;
 	void* p2_old_char_data = NULL;
@@ -77,4 +80,11 @@ private:
 	std::vector<int> random_wakeup{}; //holds the slots to be random for wakeup
 
 	std::string prev_action;
+
+
+	int32_t wakeup_type = 0;
+	int wakeup_delay_skew = 0;
+	bool wakeup_delay_skew_change_flag = false;
+	int wakeup_delay = 0;
+	char* bbcf_base_adress = GetBbcfBaseAdress();
 };
