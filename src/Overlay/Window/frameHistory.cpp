@@ -1,4 +1,4 @@
-#include "frame_history.h"
+#include "frameHistory.h"
 #include <cstddef>
 
 PlayerState stateFrom(CharData &player) {
@@ -43,6 +43,10 @@ void FrameHistory::updateHistory(CharData &player1, CharData &player2) {
 }
 
 StatePairQueue &FrameHistory::read() { return queue; }
+
+void FrameHistory::clear() {
+    queue.clear();
+}
 
 FrameHistory::FrameHistory() {
   queue = std::deque<StatePair>();

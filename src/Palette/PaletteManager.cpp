@@ -1,6 +1,6 @@
 #include "PaletteManager.h"
 
-#include "impl_templates.h"
+#include "impl_templates.cpp"
 
 #include "Core/logger.h"
 #include "Core/utils.h"

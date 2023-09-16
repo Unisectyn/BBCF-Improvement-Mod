@@ -4,6 +4,8 @@
 #include "PaletteEditorWindow.h"
 #include "framedata.h"
 
+#include "frameHistory.h"
+
 #include "Core/Settings.h"
 #include "Core/info.h"
 #include "Core/interfaces.h"
@@ -144,8 +146,12 @@ void ::MainWindow::DrawFrameHistorySection() const {
   if (!ImGui::CollapsingHeader("FrameHistory"))
     return;
 
+  // Create the frame history to be updated later
+  static FrameHistory history = FrameHistory();
+
   if (!isInMatch()) {
     ImGui::HorizontalSpacing();
+    history.clear();
     ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
     return;
   } else if (!(*g_gameVals.pGameMode == GameMode_Training ||
@@ -155,8 +161,7 @@ void ::MainWindow::DrawFrameHistorySection() const {
     return;
   }
 
-  // Create the frame history to be updated later
-  static FrameHistory history = FrameHistory();
+
 
   // May want to come up with our own function to check if time moved.
   // The current implementation doesn't check if we missed frames.
@@ -180,18 +185,30 @@ void ::MainWindow::DrawFrameHistorySection() const {
 
     // player 1 history. The first element of each array in the queue
     ImGui::Text("Player 1:");
-    for (auto &elem : queue) {
+
+    for (StatePairQueue::reverse_iterator elem = queue.rbegin(); elem != queue.rend(); ++elem) {
       ImGui::SameLine();
-      float t = (1 - elem.front()) * 1.0f;
-      MakeBox(ImColor::HSV(t, t, t), elem.front() ? "I\0" : "N\0");
-    }
+      float t = (1 - (*elem).front()) * 1.0f;
+      ImVec4 color = (ImVec4)ImColor::HSV(t, t, t);
+      ImGui::PushStyleColor(ImGuiCol_Button, color);
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
+      ImGui::Button((*elem).front() ? "I\0" : "N\0", ImVec2(20.0f, 20.0f));
+      ImGui::PopStyleColor(3);
+    } 
 
     // the second element for player 2
     ImGui::Text("Player 2:");
-    for (auto &elem : queue) {
+    for (StatePairQueue::reverse_iterator elem = queue.rbegin(); elem != queue.rend(); ++elem) {
       ImGui::SameLine();
-      float t = (1 - elem.back()) * 1.0f;
-      MakeBox(ImColor::HSV(t, t, t), elem.back() ? "I\0" : "N\0");
+      float t = (1 - (*elem).back()) * 1.0f;
+      
+      ImVec4 color = (ImVec4)ImColor::HSV(t, t, t);
+      ImGui::PushStyleColor(ImGuiCol_Button, color);
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
+      ImGui::Button((*elem).back() ? "I\0" : "N\0", ImVec2(20.0f, 20.0f));
+      ImGui::PopStyleColor(3);
     }
 
     ImGui::End();

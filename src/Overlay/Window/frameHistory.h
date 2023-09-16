@@ -28,6 +28,7 @@ public:
   // Overwrites old history if both players have been previously idle
   void updateHistory(CharData &player1, CharData &player2);
   StatePairQueue &read();
+  void clear();
 
 private:
   StatePairQueue queue;
