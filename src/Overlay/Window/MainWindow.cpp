@@ -14,6 +14,7 @@
 #include "Overlay/Widget/GameModeSelectWidget.h"
 #include "Overlay/Widget/StageSelectWidget.h"
 #include "frameHistory.h"
+#include "ActionPattern.h"
 
 #include <sstream>
 
@@ -84,6 +85,7 @@ void MainWindow::Draw()
 	DrawHitboxOverlaySection();
 	DrawFrameHistorySection();
 	DrawFrameAdvantageSection();
+	DrawActionPatternSection();
 	DrawAvatarSection();
 	DrawControllerSettingSection();
 	DrawLoadedSettingsValuesSection();
@@ -393,6 +395,88 @@ void MainWindow::DrawFrameHistorySection() const {
 
 			++frame_idx;
 		}
+
+		ImGui::End();
+	}
+}
+
+void MainWindow::DrawActionPatternSection() const {
+	if (!ImGui::CollapsingHeader("ActionPattern"))
+		return;
+
+	static std::vector<ActionPattern> patterns = { ActionPattern({ "NmlAtk5A", "NmlAtk5B" }) , ActionPattern({"NmlAtk5A"})};
+	static ActionPattern* active_pattern = &patterns[0];
+	// static ActionPattern* active_pattern = ;
+
+	if (!isInMatch()) {
+		ImGui::HorizontalSpacing();
+		// history.clear();
+		ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
+		return;
+	}
+	else if (!(*g_gameVals.pGameMode == GameMode_Training ||
+		*g_gameVals.pGameMode == GameMode_ReplayTheater)) {
+		ImGui::HorizontalSpacing();
+		ImGui::TextDisabled("YOU ARE NOT IN TRAINING MODE OR REPLAY THEATER!");
+		return;
+	}
+
+	const float WIDTH = 6.;
+	const float HEIGHT = 6.;
+
+	// NOTE: May want to come up with another function to check if time moved.
+	// this implementation doesn't check if we missed frames.
+	if (!g_interfaces.player1.IsCharDataNullPtr() &&
+		!g_interfaces.player2.IsCharDataNullPtr() && hasWorldTimeMoved()) {
+
+		active_pattern->match_next(Action::get_next_player_action(g_interfaces.player1.GetData()));
+	}
+
+	static bool isActionPatternOpen = false;
+	ImGui::HorizontalSpacing();
+	ImGui::Checkbox("Enable##action_pattern_section", &isActionPatternOpen);
+
+	if (isActionPatternOpen) {
+		// TODO: Try using beginchild instead.
+		ImGui::Begin("Action pattern", &isActionPatternOpen);
+
+		// Every 3 frames, change moves
+		ImGui::Text("This is my window!");
+
+		// int buttons_per_line = 29;
+		ImVec2 button_sz = ImVec2(0., 0.);
+		float window_visible_x2 = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
+		// Add a list of highlightable widgets representing the actions
+		// Could use buttons again...
+		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.66, 0.6, 0.6));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.66, 0.6, 0.6));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.66, 0.6, 0.6));
+		for (size_t n = 0; n < MIN(active_pattern->progress_index, active_pattern->pattern.size()); n++) {
+			std::string action = active_pattern->pattern[n];
+			ImGui::PushID(n);
+			ImGui::Button(action.c_str(), button_sz);
+			float last_button_x2 = ImGui::GetItemRectMax().x;
+			float next_button_x2 = last_button_x2 + button_sz.x;//  + style.ItemSpacing.x; // Expected position if next button was on same line
+			// if (n + 1 < buttons_per_line && next_button_x2 < window_visible_x2)
+			//     ImGui::SameLine();
+			ImGui::PopID();
+		}
+		ImGui::PopStyleColor(3);
+		// Change button style
+		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.33, 0.6, 0.6));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.33, 0.6, 0.6));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.33, 0.6, 0.6));
+		for (size_t n = active_pattern->progress_index; n < active_pattern->pattern.size(); n++) {
+			std::string action = active_pattern->pattern[n];
+			ImGui::PushID(n);
+			ImGui::Button(action.c_str(), button_sz);
+			float last_button_x2 = ImGui::GetItemRectMax().x;
+			float next_button_x2 = last_button_x2 + button_sz.x;//  + style.ItemSpacing.x; // Expected position if next button was on same line
+			// if (n + 1 < buttons_per_line && next_button_x2 < window_visible_x2)
+			//     ImGui::SameLine();
+			ImGui::PopID();
+		}
+		ImGui::PopStyleColor(3);
 
 		ImGui::End();
 	}
