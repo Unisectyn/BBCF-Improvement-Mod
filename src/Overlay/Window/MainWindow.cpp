@@ -404,13 +404,13 @@ void MainWindow::DrawActionPatternSection() const {
 	if (!ImGui::CollapsingHeader("ActionPattern"))
 		return;
 
-	static std::vector<ActionPattern> patterns = { ActionPattern({ "NmlAtk5A", "NmlAtk5B" }) , ActionPattern({"NmlAtk5A"})};
-	static ActionPattern* active_pattern = &patterns[0];
+	// static std::vector<std::string> pattern_names = { ,  };
+	static std::vector<ActionPattern> patterns = { ActionPattern("Basic gatling", { Action("NmlAtk5A", "5A" ), Action( "NmlAtk5B", "5B" ) }) , ActionPattern("Light attack", {Action("NmlAtk5A", "5A")})};
+	static size_t item_selected_idx = 0;
 	// static ActionPattern* active_pattern = ;
 
 	if (!isInMatch()) {
 		ImGui::HorizontalSpacing();
-		// history.clear();
 		ImGui::TextDisabled("YOU ARE NOT IN MATCH!");
 		return;
 	}
@@ -423,7 +423,28 @@ void MainWindow::DrawActionPatternSection() const {
 
 	const float WIDTH = 6.;
 	const float HEIGHT = 6.;
+  {
+      if (ImGui::BeginListBox("Patterns"))
+      {
+          for (int n = 0; n < patterns.size(); n++)
+          {
+              const bool is_selected = (item_selected_idx == n);
+              if (ImGui::Selectable(pattern_names[n].c_str(), is_selected))
+                  item_selected_idx = n;
+              // if (item_highlight && ImGui::IsItemHovered())
+              //     item_highlighted_idx = n;
+              if (is_selected)
+                  ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndListBox();
+      }
+  }
 
+  ActionPattern* active_pattern = NULL;
+  
+  if (item_selected_idx < patterns.size())
+		 active_pattern = &patterns[item_selected_idx];
+		 
 	// NOTE: May want to come up with another function to check if time moved.
 	// this implementation doesn't check if we missed frames.
 	if (!g_interfaces.player1.IsCharDataNullPtr() &&
@@ -436,7 +457,7 @@ void MainWindow::DrawActionPatternSection() const {
 	ImGui::HorizontalSpacing();
 	ImGui::Checkbox("Enable##action_pattern_section", &isActionPatternOpen);
 
-	if (isActionPatternOpen) {
+	if (isActionPatternOpen && active_pattern != NULL) {
 		// TODO: Try using beginchild instead.
 		ImGui::Begin("Action pattern", &isActionPatternOpen);
 

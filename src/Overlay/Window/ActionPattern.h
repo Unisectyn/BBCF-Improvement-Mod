@@ -14,9 +14,19 @@
 #include <vector>
 
 
+enum ActionResult {
+    Hit,
+    Blocked,
+    Whiffed
+};
+
 struct Action {
     std::string action;
     bool is_new;
+    std::string display_name;
+    ActionResult result;
+
+
     Action(std::string, bool);
     static Action get_next_player_action(CharData* player);
 };
@@ -25,6 +35,7 @@ struct Action {
 struct ActionPattern {
 public:
     const static std::string IDLE;
+    std::string name;
     ActionPattern(std::vector<std::string> pattern);
     ~ActionPattern();
 
@@ -33,7 +44,7 @@ public:
     // pattern
     // Think about adding duration to the pattern,
     // or something to encode number of hits
-    std::vector<std::string> pattern;
+    std::vector<Action> pattern;
     
     size_t progress_index;
 };
