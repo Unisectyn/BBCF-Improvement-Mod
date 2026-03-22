@@ -342,7 +342,7 @@ void FrameHistory::loadCharData() {
     std::vector<scrState*> states_p1 = parse_scr(bbcf_base_adress, 1);
     std::vector<scrState*> states_p2;
     if (p1_charIndex == p2_charIndex) {
-        states_p2 = parse_scr(bbcf_base_adress, 1);
+        states_p2 = states_p1;
     } else {
         states_p2 = parse_scr(bbcf_base_adress, 2);
     }
