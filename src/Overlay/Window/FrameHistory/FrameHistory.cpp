@@ -106,7 +106,7 @@ std::array<float, 3> kindtoColor(FrameKind kind) {
 
 int first_det_active(std::vector<FrameActivity>& activity_status) {
     for (size_t i = 0; i < activity_status.size(); i++) {
-        if (activity_status[i] == FrameActivity::Active) {
+        if ((activity_status[i] & 0x0F) == FrameActivity::Active) {
             return i;
         }
     }
